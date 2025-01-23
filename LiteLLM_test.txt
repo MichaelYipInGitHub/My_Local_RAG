@@ -1,0 +1,79 @@
+from llama_index.core.llms import ChatMessage
+from llama_index.llms.litellm import LiteLLM
+import os
+from litellm import completion
+# os.environ["OPENAI_API_KEY"] = "your-api-key"
+# os.environ["COHERE_API_KEY"] = "your-api-key"
+
+from config.load_key import load_key
+load_key()
+
+#  参考文档 https://docs.litellm.ai/docs/providers/openai_compatible#usage---completion
+chunk_text="""
+    {
+        "reference": [
+            "其他-人体损伤程度鉴定标准2014-01-01:    \"人体损伤程度鉴定标准2014-01-01：6.13　本标准所称的假体是指植入体内替代组织器官功能的装置，如：颅骨修补材料、人工晶体、义眼座、固定义齿（种植牙）、阴茎假体、人工关节、起搏器、支架等，但可摘式义眼、义齿等除外。\\n\",\n",
+            "其他-人体损伤程度鉴定标准2014-01-01:    \"人体损伤程度鉴定标准2014-01-01：6.14　移植器官损伤参照相应条款综合鉴定。\\n\",\n",
+            "其他-人体损伤程度鉴定标准2014-01-01:    \"人体损伤程度鉴定标准2014-01-01：6.15　本标准所称组织器官包括再植或者再造成活的。\\n\",\n",
+            "其他-人体损伤程度鉴定标准2014-01-01:    \"人体损伤程度鉴定标准2014-01-01：6.16　组织器官缺失是指损伤当时完全离体或者仅有少量皮肤和皮下组织相连，或者因损伤经手术切除的。器官离断（包括牙齿脱落），经再植、再造手术成功的，按损伤当时情形鉴定损伤程度。\\n\",\n"
+        ],
+        "question": "在一次车祸中，王某的牙齿被打掉了，经过手术后医生给其植入了人工牙齿。此后，王某申请了人身损害赔偿，其律师认为王某应该被认定为组织器官缺失。请问根据《人体损伤程度鉴定标准2014-01-01》的规定，对于植入人工牙齿的情况应该如何鉴定损伤程度？",
+        "answer": "根据《人体损伤程度鉴定标准2014-01-01》的规定，组织器官缺失是指损伤当时完全离体或者仅有少量皮肤和皮下组织相连，或者因损伤经手术切除的。而对于植入体内替代组织器官功能的假体，如人工牙齿，应被视为假体并非缺失的组织器官。因此，王某的情况应按损伤当时情形鉴定损伤程度。"
+    },
+"""
+prompt="你好，牙齿被打折2颗算什么伤害?"
+prompt_template = f"你是一个专业的法律大模型,请参考以下内容：{chunk_text}，以合适的语气回答用户的问题：{prompt}。如果参考内容中有图片链接也请直接返回。"
+
+messages = [
+    ChatMessage(
+        role="system", content=prompt_template
+    ),
+    ChatMessage(role="user", content=prompt),
+]
+print(f"messages: {messages}")
+llm_deepseek = LiteLLM(
+    model="deepseek/deepseek-chat",
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    api_base="https://api.deepseek.com",
+)
+resp = llm_deepseek.chat(messages)
+print(f"deepseek: {resp.message.content}")
+print(f"\n")
+
+
+#  参考文档
+#  https://help.aliyun.com/zh/model-studio/getting-started/models?spm=a2c4g.11186623.help-menu-2400256.d_0_2.5a06b0a8FB4aX3&scm=20140722.H_2840914._.OR_help-T_cn~zh-V_1
+#  https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api?spm=a2c4g.11186623.0.0.3173b0a8Pf0e94
+
+
+llm_qwen = LiteLLM(
+    model="openai/qwen-plus",
+    api_key=os.getenv("DASHSCOPE_API_KEY"),
+    api_base="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
+resp = llm_qwen.chat(messages)
+print(f"qwen: {resp.message.content}")
+print(f"\n")
+
+#  参考文档：
+#  https://docs.litellm.ai/docs/providers/ollama
+
+llm_ollama = LiteLLM(
+    model="ollama/qwen2.5:7b",
+    api_base="http://localhost:11434",
+)
+
+resp = llm_ollama.chat(messages)
+print(f"ollama: {resp.message.content}")
+print(f"\n")
+print(
+    """
+ollama: 你好！根据《人体损伤程度鉴定标准2014-01-01》的规定，牙齿被打折的情况可以被归类为一定的伤害等级。具体来说，牙齿的损伤通常会依据损伤的具体情况来确定其严重程度。例如，牙齿折断可能涉及到牙冠、牙根的不同部分以及是否影响到了牙齿的功能等。
+
+但是，《人体损伤程度鉴定标准2014-01-01》并没有直接指出“牙齿被打折2颗”属于哪个具体的伤害等级。在实际操作中，这种情况下一般会由专业的法医或医疗专家根据具体情况做出评估。如果牙齿折断导致了功能障碍或者需要进行治疗（如修复、拔除后植入假体等），那么这可能会被认为是较为严重的伤害。
+
+此外，根据该标准第6.15条，“组织器官缺失是指损伤当时完全离体或者仅有少量皮肤和皮下组织相连，或者因损伤经手术切除的”。对于牙齿而言，如果因为损伤而必须拔除，则可被视为一种形式的组织器官缺失。但如果是牙齿折断且未完全脱离，则更多地会被视为损伤而非缺失，并据此评定相应的损伤程度。
+
+因此，针对您提到的牙齿被打折2颗的情况，建议咨询专业医生或法医获取准确的损伤程度鉴定结果。如果有进一步的问题或其他方面需要帮助，请随时告诉我！
+    """
+)
